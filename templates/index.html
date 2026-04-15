@@ -448,21 +448,16 @@
     }
 
     #btn-back-hielluo {
-      position: fixed; top: 14px; right: 16px; z-index: 300;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 7px 14px;
-      color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 0.72rem;
-      cursor: pointer; text-decoration: none;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-muted); font-size: 0.72rem; padding: 7px 10px;
+      cursor: pointer; font-family: 'DM Mono', monospace; text-decoration: none;
+      transition: color 0.15s, border-color 0.15s; text-align: center; flex: 1;
     }
-    #btn-back-hielluo:hover {
-      color: var(--text); border-color: var(--accent); background: var(--surface2);
-    }
+    #btn-back-hielluo:hover { color: var(--accent); border-color: var(--accent); }
   </style>
 </head>
 <body>
 
-  <a id="btn-back-hielluo" href="#" onclick="openHielluo(event)">← Back to Hielluo</a>
 
   <!-- INTRO -->
   <div id="intro-overlay">
@@ -538,6 +533,7 @@
           </div>
         </div>
         <div class="sidebar-footer-actions">
+          <a id="btn-back-hielluo" href="#" onclick="openHielluo(event)">Home</a>
           <button class="btn-settings" id="btn-open-settings" style="flex:1">⚙ Settings</button>
           <button class="btn-signout" id="btn-signout" style="flex:1">Sign out</button>
         </div>
