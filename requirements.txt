@@ -1,0 +1,6 @@
+flask
+flask-cors
+cohere
+requests
+gunicorn
+firebase-admin

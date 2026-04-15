@@ -1,0 +1,7 @@
+# Ignore environment variables and secrets
+.env
+.venv/
+env/
+__pycache__/
+*.pyc
+.DS_StoreserviceAccountKey.json

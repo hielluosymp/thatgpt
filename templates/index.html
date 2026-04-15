@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ThatGPT</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23000'/%3E%3Cg stroke='white' stroke-width='12' stroke-linecap='round'%3E%3Cline x1='50' y1='10' x2='50' y2='90'/%3E%3Cline x1='16' y1='30' x2='84' y2='70'/%3E%3Cline x1='16' y1='70' x2='84' y2='30'/%3E%3C/g%3E%3C/svg%3E"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0f;
+      --surface: #17171a;
+      --surface2: #1e1e24;
+      --border: #2a2a2f;
+      --accent: #1188aa;
+      --accent-dim: #0d6a85;
+      --text: #f0f0f0;
+      --text-muted: #555;
+      --radius: 14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── INTRO ── */
+    #intro-overlay {
+      position: fixed; inset: 0; background: #000;
+      z-index: 9999; display: flex; align-items: center; justify-content: center;
+      transition: opacity 1.2s ease;
+    }
+    #intro-overlay iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+    #skip-hint {
+      position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+      color: white; font-size: 0.7rem; letter-spacing: 0.15em; opacity: 0;
+      animation: hintIn 0.8s ease 1.5s forwards; pointer-events: none;
+    }
+    @keyframes hintIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+      to   { opacity: 0.5; transform: translateX(-50%) translateY(0); }
+    }
+
+    /* ── AUTH SCREEN ── */
+    #auth-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      z-index: 100; display: none;
+      align-items: center; justify-content: center;
+    }
+    #auth-screen.visible { display: flex; }
+
+    .auth-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      animation: fadeUp 0.4s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .auth-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .auth-logo h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; color: #fff; }
+
+    .auth-tabs {
+      display: flex; background: var(--bg); border-radius: 10px; padding: 4px;
+    }
+    .auth-tab {
+      flex: 1; padding: 8px; text-align: center; cursor: pointer;
+      border-radius: 8px; font-size: 0.8rem; color: var(--text-muted); transition: all 0.2s;
+    }
+    .auth-tab.active { background: var(--surface2); color: var(--text); }
+
+    .auth-input {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; color: var(--text); font-family: 'DM Mono', monospace;
+      font-size: 0.85rem; outline: none; transition: border-color 0.2s; width: 100%;
+    }
+    .auth-input:focus { border-color: var(--accent); }
+    .auth-input::placeholder { color: var(--text-muted); }
+
+    .btn-primary {
+      background: var(--accent); color: #0d0d0f; border: none; border-radius: 10px;
+      padding: 13px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem;
+      cursor: pointer; transition: background 0.2s, transform 0.1s; width: 100%;
+    }
+    .btn-primary:hover { background: #14a0c8; }
+    .btn-primary:active { transform: scale(0.98); }
+
+    #stop-creation-btn {
+      background: #cc3333; color: #fff; border: none; border-radius: 10px;
+      padding: 13px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem;
+      cursor: pointer; transition: background 0.2s; width: 100%; display: none;
+    }
+    #stop-creation-btn:hover { background: #e04444; }
+
+    .btn-google {
+      background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px; font-family: 'DM Mono', monospace; font-size: 0.85rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: background 0.2s; width: 100%;
+    }
+    .btn-google:hover { background: #27272e; }
+
+    .auth-divider {
+      display: flex; align-items: center; gap: 12px;
+      color: var(--text-muted); font-size: 0.75rem;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    .auth-error { color: #ff6b6b; font-size: 0.78rem; text-align: center; min-height: 18px; }
+
+    /* ── MAIN APP ── */
+    #app { display: none; flex: 1; overflow: hidden; }
+    #app.visible { display: flex; }
+
+    /* Sidebar */
+    #sidebar {
+      width: 280px; background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      min-height: 64px;
+    }
+    .sidebar-header svg { flex-shrink: 0; }
+    .sidebar-header h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem; color: #fff; flex: 1; min-width: 0; }
+
+    .btn-new-chat {
+      background: var(--accent); color: #0d0d0f; border: none; border-radius: 8px;
+      padding: 6px 10px; font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 0.75rem; cursor: pointer; transition: background 0.2s; white-space: nowrap;
+    }
+    .btn-new-chat:hover { background: #14a0c8; }
+
+    #chat-list {
+      flex: 1; overflow-y: auto; padding: 8px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    #chat-list::-webkit-scrollbar { width: 3px; }
+    #chat-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .chat-item {
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      font-size: 0.78rem; color: var(--text-muted);
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .chat-item:hover { background: var(--surface2); color: var(--text); }
+    .chat-item.active { background: var(--surface2); color: var(--text); }
+    .chat-item-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-delete {
+      opacity: 0; font-size: 0.7rem; color: var(--text-muted);
+      background: none; border: none; cursor: pointer; padding: 2px 4px;
+      transition: opacity 0.15s, color 0.15s;
+    }
+    .chat-item:hover .chat-delete { opacity: 1; }
+    .chat-delete:hover { color: #ff6b6b; }
+
+    .sidebar-footer {
+      padding: 12px 14px; border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .sidebar-footer-top {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sidebar-footer-actions {
+      display: flex; gap: 6px;
+    }
+    .user-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.8rem;
+      flex-shrink: 0; overflow: hidden; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .user-avatar:hover { opacity: 0.8; }
+    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .user-info { flex: 1; overflow: hidden; cursor: pointer; }
+    .user-info:hover .user-name { color: var(--accent); }
+    .user-name { font-size: 0.75rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.15s; }
+    .user-email { font-size: 0.65rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .btn-signout {
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-muted); font-size: 0.72rem; padding: 7px 10px;
+      cursor: pointer; font-family: 'DM Mono', monospace;
+      transition: color 0.15s, border-color 0.15s; text-align: center;
+    }
+    .btn-signout:hover { color: #ff6b6b; border-color: #ff6b6b44; }
+    .btn-settings {
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-muted); font-size: 0.72rem; padding: 7px 10px;
+      cursor: pointer; font-family: 'DM Mono', monospace;
+      transition: color 0.15s, border-color 0.15s; text-align: center;
+    }
+    .btn-settings:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ── ACCOUNT SETTINGS MODAL ── */
+    #settings-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      z-index: 200; display: none; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    #settings-modal.visible { display: flex; }
+    .settings-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px 32px; width: 100%; max-width: 420px;
+      display: flex; flex-direction: column; gap: 20px;
+      animation: fadeUp 0.3s ease;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .settings-box::-webkit-scrollbar { width: 3px; }
+    .settings-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .settings-header {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .settings-header h2 {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; color: #fff;
+    }
+    .btn-close {
+      background: none; border: none; color: var(--text-muted); font-size: 1.2rem;
+      cursor: pointer; padding: 4px; transition: color 0.15s; line-height: 1;
+    }
+    .btn-close:hover { color: var(--text); }
+    .settings-avatar-row {
+      display: flex; align-items: center; gap: 16px;
+    }
+    .settings-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem;
+      flex-shrink: 0; overflow: hidden;
+    }
+    .settings-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .settings-user-info { flex: 1; }
+    .settings-user-info .name { font-size: 0.95rem; font-weight: 700; color: var(--text); font-family: 'Syne', sans-serif; }
+    .settings-user-info .email { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .settings-section-label {
+      font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.1em; margin-bottom: -10px;
+    }
+    .settings-input {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 11px 14px; color: var(--text); font-family: 'DM Mono', monospace;
+      font-size: 0.85rem; outline: none; transition: border-color 0.2s; width: 100%;
+    }
+    .settings-input:focus { border-color: var(--accent); }
+    .settings-input::placeholder { color: var(--text-muted); }
+    .settings-row { display: flex; gap: 10px; }
+    .settings-pw-field { position: relative; display: flex; align-items: center; }
+    .settings-pw-field .settings-input { padding-right: 52px; width: 100%; }
+    .btn-pw-toggle {
+      position: absolute; right: 10px;
+      background: none; border: none; color: var(--text-muted);
+      font-size: 0.7rem; cursor: pointer; font-family: 'DM Mono', monospace;
+      padding: 4px; transition: color 0.15s; line-height: 1;
+    }
+    .btn-pw-toggle:hover { color: var(--text); }
+    .settings-forgot {
+      font-size: 0.72rem; color: var(--text-muted); text-decoration: none;
+      transition: color 0.15s;
+    }
+    .settings-forgot:hover { color: var(--accent); }
+    .btn-settings-save {
+      background: var(--accent); color: #0d0d0f; border: none; border-radius: 10px;
+      padding: 11px 20px; font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 0.85rem; cursor: pointer; transition: background 0.2s; white-space: nowrap;
+    }
+    .btn-settings-save:hover { background: #14a0c8; }
+    .settings-divider { height: 1px; background: var(--border); }
+    .settings-danger {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .settings-danger-label { font-size: 0.8rem; color: var(--text-muted); }
+    .btn-danger {
+      background: none; border: 1px solid #ff4d4d44; border-radius: 8px;
+      color: #ff6b6b; font-size: 0.75rem; padding: 7px 14px;
+      cursor: pointer; font-family: 'DM Mono', monospace;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-danger:hover { background: #ff4d4d18; border-color: #ff6b6b; }
+    .settings-msg { font-size: 0.75rem; text-align: center; min-height: 16px; color: var(--accent); }
+
+    /* Chat area */
+    #chat-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    #chatbox {
+      flex: 1; overflow-y: auto; padding: 28px 32px;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    #chatbox::-webkit-scrollbar { width: 4px; }
+    #chatbox::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .message { display: flex; flex-direction: column; gap: 4px; animation: fadeUp 0.2s ease; }
+    .message-label { font-size: 0.63rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .message.user .message-label { color: var(--accent-dim); }
+    .message-bubble {
+      padding: 13px 17px; border-radius: 12px; font-size: 0.875rem; line-height: 1.65;
+      max-width: 80%; border: 1px solid var(--border); background: var(--bg);
+    }
+    .message.user { align-items: flex-end; }
+    .message.user .message-bubble { background: var(--surface2); border-color: #2e2e38; }
+    .message.error .message-bubble { border-color: #ff4d4d44; color: #ff7070; }
+    .message-bubble .text-part { white-space: pre-wrap; }
+    .message-bubble strong { font-weight: 700; color: var(--text); }
+    .message-bubble em { font-style: italic; color: #c8d8f0; }
+    .code-block-wrapper { position: relative; margin: 8px 0; }
+    .code-block-wrapper:first-child { margin-top: 0; }
+    .code-block-wrapper:last-child { margin-bottom: 0; }
+    .message-bubble pre {
+      background: #1a1b26; border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px 14px; padding-right: 52px; overflow-x: auto; margin: 0;
+    }
+    .message-bubble code {
+      font-family: 'DM Mono', monospace; font-size: 0.82rem; white-space: pre;
+    }
+    .hljs { background: transparent !important; }
+    .copy-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text-muted); font-size: 0.68rem; padding: 3px 8px;
+      cursor: pointer; font-family: 'DM Mono', monospace;
+      opacity: 0; transition: opacity 0.15s, color 0.15s; line-height: 1.6;
+    }
+    .code-block-wrapper:hover .copy-btn { opacity: 1; }
+    .copy-btn.copied { color: var(--accent); opacity: 1; }
+
+    /* Scroll-to-bottom button */
+    #chat-area { position: relative; }
+    #scroll-bottom-btn {
+      position: absolute; bottom: 76px; right: 20px;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text-muted); font-size: 1rem; cursor: pointer;
+      display: none; align-items: center; justify-content: center;
+      transition: color 0.15s, background 0.15s; z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    #scroll-bottom-btn.visible { display: flex; }
+    #scroll-bottom-btn:hover { color: var(--accent); background: var(--surface); }
+
+    .typing .message-bubble { display: flex; align-items: center; padding: 13px 17px; }
+    .typing-verb {
+      font-size: 0.82rem; color: var(--accent); font-style: italic;
+      animation: verbFade 0.3s ease;
+    }
+    @keyframes verbFade {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .empty-chat {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px; color: var(--text-muted);
+    }
+    .empty-chat .big { font-family: 'Syne', sans-serif; font-size: 2.5rem; font-weight: 800; color: var(--border); }
+
+    #input-area {
+      padding: 16px 20px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; align-items: center;
+    }
+    #userInput {
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px; color: var(--text);
+      font-family: 'DM Mono', monospace; font-size: 0.875rem; outline: none;
+      transition: border-color 0.2s;
+    }
+    #userInput:focus { border-color: var(--accent); }
+    #userInput::placeholder { color: var(--text-muted); }
+    #sendBtn {
+      background: var(--accent); color: #0d0d0f; border: none; border-radius: 10px;
+      padding: 12px 20px; font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 0.85rem; cursor: pointer; transition: background 0.2s, transform 0.1s; white-space: nowrap;
+    }
+    #sendBtn:hover { background: #14a0c8; }
+    #sendBtn:active { transform: scale(0.97); }
+    #sendBtn:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+    #sendBtn.stop { background: #ff4d4d; color: #fff; }
+    #sendBtn.stop:hover { background: #ff6666; }
+
+    #file-chip { display: none; }
+
+    #footnote {
+      text-align: center;
+      padding: 6px 0 10px;
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.35);
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .footnote-dot { color: rgba(255,255,255,0.2); }
+
+    /* ── MOBILE ── */
+    #mobile-header {
+      display: none; align-items: center; gap: 12px;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      background: var(--surface); flex-shrink: 0;
+    }
+    #mobile-menu-btn {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 1.2rem; cursor: pointer; padding: 4px; line-height: 1;
+      transition: color 0.15s;
+    }
+    #mobile-menu-btn:hover { color: var(--text); }
+    #mobile-header-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.95rem; color: #fff; }
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 50; backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.visible { display: block; }
+
+    @media (max-width: 768px) {
+      .auth-box { padding: 32px 24px; }
+      #sidebar {
+        position: fixed; left: 0; top: 0; bottom: 0; z-index: 60;
+        transform: translateX(-100%); transition: transform 0.25s ease;
+        width: 75vw; max-width: 280px;
+      }
+      #sidebar.open { transform: translateX(0); }
+      #mobile-header { display: flex; }
+      #chatbox { padding: 16px 14px; }
+      #input-area { padding: 10px 12px; }
+      .message-bubble { max-width: 92%; font-size: 0.82rem; }
+      #footnote { padding: 4px 12px 8px; font-size: 0.6rem; }
+      .settings-box { padding: 24px 20px; margin: 0 12px; }
+    }
+
+    #btn-back-hielluo {
+      position: fixed; top: 14px; right: 16px; z-index: 300;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 14px;
+      color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 0.72rem;
+      cursor: pointer; text-decoration: none;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    #btn-back-hielluo:hover {
+      color: var(--text); border-color: var(--accent); background: var(--surface2);
+    }
+  </style>
+</head>
+<body>
+
+  <a id="btn-back-hielluo" href="#" onclick="openHielluo(event)">← Back to Hielluo</a>
+
+  <!-- INTRO -->
+  <div id="intro-overlay">
+    <iframe src="https://player.vimeo.com/video/1173299204?h=fbd3d2ced2&autoplay=1&muted=1&background=1"
+      allow="autoplay; fullscreen"></iframe>
+    <div id="skip-hint">Press space to skip or watch this exciting animation!</div>
+  </div>
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen" class="visible">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <svg width="32" height="32" viewBox="0 0 100 100">
+          <rect width="100" height="100" rx="20" fill="#000"/>
+          <g stroke="white" stroke-width="12" stroke-linecap="round">
+            <line x1="50" y1="18" x2="50" y2="82"/>
+            <line x1="22" y1="34" x2="78" y2="66"/>
+            <line x1="22" y1="66" x2="78" y2="34"/>
+          </g>
+        </svg>
+        <h1>ThatGPT</h1>
+      </div>
+
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tab-signin">Sign In</div>
+        <div class="auth-tab" id="tab-signup">Sign Up</div>
+      </div>
+
+      <button class="btn-google">
+        <svg width="18" height="18" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="auth-divider">or</div>
+
+      <input class="auth-input" type="email" id="auth-email" placeholder="Email address" autocomplete="email" name="email"/>
+      <input class="auth-input" type="password" id="auth-password" placeholder="Password" autocomplete="current-password" name="password"/>
+      <input class="auth-input" type="text" id="auth-fullname" placeholder="Full name" style="display:none"/>
+      <a href="#" id="auth-forgot-link" style="font-size:0.72rem;color:rgba(255,255,255,0.35);text-align:right;text-decoration:none;margin-top:-8px;transition:color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.7)'" onmouseout="this.style.color='rgba(255,255,255,0.35)'">Forgot password?</a>
+      <div class="auth-error" id="auth-error"></div>
+      <button class="btn-primary" id="auth-submit-btn">Sign In</button>
+      <button id="stop-creation-btn">✕ Stop Creation</button>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app">
+    <div id="sidebar">
+      <div class="sidebar-header">
+        <svg width="44" height="44" viewBox="0 0 100 100">
+          <rect width="100" height="100" rx="20" fill="#000"/>
+          <g stroke="white" stroke-width="12" stroke-linecap="round">
+            <line x1="50" y1="18" x2="50" y2="82"/>
+            <line x1="22" y1="34" x2="78" y2="66"/>
+            <line x1="22" y1="66" x2="78" y2="34"/>
+          </g>
+        </svg>
+        <h1>ThatGPT</h1>
+        <button class="btn-new-chat" id="btn-new-chat">+ New</button>
+      </div>
+      <div id="chat-list"></div>
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-top">
+          <div class="user-avatar" id="user-avatar">?</div>
+          <div class="user-info" id="user-info-block">
+            <div class="user-name" id="user-name">—</div>
+            <div class="user-email" id="user-email">—</div>
+          </div>
+        </div>
+        <div class="sidebar-footer-actions">
+          <button class="btn-settings" id="btn-open-settings" style="flex:1">⚙ Settings</button>
+          <button class="btn-signout" id="btn-signout" style="flex:1">Sign out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCOUNT SETTINGS MODAL -->
+    <div id="settings-modal">
+      <div class="settings-box">
+        <div class="settings-header">
+          <h2>Account Settings</h2>
+          <button class="btn-close" id="btn-close-settings">✕</button>
+        </div>
+        <div class="settings-avatar-row">
+          <div class="settings-avatar" id="settings-avatar">?</div>
+          <div class="settings-user-info">
+            <div class="name" id="settings-display-name">—</div>
+            <div class="email" id="settings-display-email">—</div>
+          </div>
+        </div>
+        <div class="settings-divider"></div>
+        <div class="settings-section-label">Display Name</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input class="settings-input" type="text" id="settings-new-name" placeholder="Your name" autocomplete="name"/>
+          <button class="btn-settings-save" id="btn-save-name">Save</button>
+        </div>
+        <div class="settings-msg" id="settings-name-msg"></div>
+        <div class="settings-divider"></div>
+        <div class="settings-section-label">Change Password</div>
+        <div class="settings-pw-field">
+          <input class="settings-input" type="password" id="settings-old-password" placeholder="Current password" autocomplete="current-password" name="current-password"/>
+          <button class="btn-pw-toggle" type="button" data-target="settings-old-password">show</button>
+        </div>
+        <div class="settings-pw-field">
+          <input class="settings-input" type="password" id="settings-password" placeholder="New password" autocomplete="new-password" name="new-password"/>
+          <button class="btn-pw-toggle" type="button" data-target="settings-password">show</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <button class="btn-settings-save" id="btn-save-password">Save</button>
+          <a class="settings-forgot" href="#" id="btn-forgot-password">Forgot password?</a>
+        </div>
+        <div class="settings-msg" id="settings-msg"></div>
+        <div class="settings-divider"></div>
+        <div class="settings-section-label">Change Email</div>
+        <input class="settings-input" type="email" id="settings-new-email" placeholder="New email address" autocomplete="email"/>
+        <div class="settings-pw-field">
+          <input class="settings-input" type="password" id="settings-email-password" placeholder="Current password to confirm" autocomplete="current-password" name="email-change-password"/>
+          <button class="btn-pw-toggle" type="button" data-target="settings-email-password">show</button>
+        </div>
+        <button class="btn-settings-save" id="btn-save-email">Save</button>
+        <div class="settings-msg" id="settings-email-msg"></div>
+        <div class="settings-divider"></div>
+        <div class="settings-danger">
+          <div class="settings-danger-label">Delete all my chats</div>
+          <button class="btn-danger" id="btn-delete-chats">Delete chats</button>
+        </div>
+        <div class="settings-divider"></div>
+        <div class="settings-section-label">Delete Account</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);">This permanently deletes your account and all chats forever.</div>
+        <div class="settings-pw-field">
+          <input class="settings-input" type="password" id="settings-delete-password" placeholder="Enter your password to confirm" autocomplete="current-password" name="delete-confirm-password"/>
+          <button class="btn-pw-toggle" type="button" data-target="settings-delete-password">show</button>
+        </div>
+        <button class="btn-danger" id="btn-delete-account" style="width:100%;padding:10px;">Delete my account</button>
+      </div>
+    </div>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <div id="chat-area">
+      <div id="mobile-header">
+        <button id="mobile-menu-btn">☰</button>
+        <span id="mobile-header-title">ThatGPT</span>
+      </div>
+      <button id="scroll-bottom-btn" title="Jump to bottom">↓</button>
+      <div id="chatbox">
+        <div class="empty-chat" id="empty-chat">
+          <div class="big">ThatGPT</div>
+          <div>Press <strong style="color:var(--accent)">+ New</strong> in the sidebar to start a chat.</div>
+        </div>
+      </div>
+      <div id="input-area" style="display:none;">
+        <input type="text" id="userInput" placeholder="Ask me anything..." autocomplete="off"/>
+        <button id="sendBtn">Send</button>
+      </div>
+      <div id="footnote" style="flex-direction:column; gap:4px;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span>Powered by Cohere</span>
+          <span class="footnote-dot">·</span>
+          <span>Created by hielluosymp</span>
+          <a href="/about" style="display:inline-flex;align-items:center;gap:4px;color:rgba(255,255,255,0.5);text-decoration:none;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:2px 8px;font-size:0.6rem;transition:color 0.2s,border-color 0.2s;" onmouseover="this.style.color='#fff';this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.color='rgba(255,255,255,0.5)';this.style.borderColor='rgba(255,255,255,0.15)'">Learn more &#8594;</a>
+        </div>
+        <div>ThatGPT is AI and can make mistakes. Please double-check information.</div>
+        <div>Not affiliated with OpenAI.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <!-- Intro runs independently — not blocked by Firebase module loading -->
+  <script>
+    (function() {
+      const overlay = document.getElementById('intro-overlay');
+      function hideIntro() {
+        if (!overlay || !overlay.parentNode) return;
+        overlay.style.opacity = '0';
+        setTimeout(function() { if (overlay.parentNode) overlay.remove(); }, 1200);
+      }
+      setTimeout(hideIntro, 7000);
+document.addEventListener('keydown', function(e) {
+  const overlay = document.getElementById('intro-overlay');
+
+  // Only intercept keys while intro is visible
+  if (overlay && overlay.parentNode) {
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation(); // 🔥 stops it reaching the input
+      hideIntro();
+    }
+  }
+}, true); // 👈 capture phase (VERY IMPORTANT)
+    })();
+  </script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+    import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider,
+             createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as fbSignOut,
+             onAuthStateChanged, sendEmailVerification, sendPasswordResetEmail, updateProfile,
+             EmailAuthProvider, reauthenticateWithCredential, deleteUser, signInWithCustomToken }
+      from "https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, serverTimestamp }
+      from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC5UX0bdvHs8kolEWrpJ9SG6md9-GcGvq4",
+      authDomain: "hielluo.firebaseapp.com",
+      projectId: "hielluo",
+      storageBucket: "hielluo.firebasestorage.app",
+      messagingSenderId: "925488019863",
+      appId: "1:925488019863:web:6171eac97352abed9bacd2",
+      measurementId: "G-H59J6Z3Z9P"
+    };
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const auth = getAuth(firebaseApp);
+    const db = getFirestore(firebaseApp);
+
+    // ── SSO: auto sign-in if redirected from Hielluo ──
+    const _ssoToken = new URLSearchParams(window.location.search).get('sso');
+    if (_ssoToken) {
+      history.replaceState(null, '', window.location.pathname);
+      signInWithCustomToken(auth, _ssoToken).catch(() => {});
+    }
+    const googleProvider = new GoogleAuthProvider();
+
+    let currentUser = null;
+    let currentChatId = null;
+    let currentMessages = [];
+    let isResponding = false;
+    let currentDisplayName = '';
+    let _currentAbortController = null;
+    let _pendingAuthMsg = null;
+let _pendingVerifyUser = null;
+    let _verifyInterval = null;
+    let _pendingOriginalBtnText = 'Create Account';
+
+// ── LOCALSTORAGE CHAT HELPERS ──
+    function chatsKey() { return `thatgpt_chats_${currentUser.uid}`; }
+    function loadAllChats() { try { return JSON.parse(localStorage.getItem(chatsKey()) || '[]'); } catch { return []; } }
+    function saveAllChats(chats) { localStorage.setItem(chatsKey(), JSON.stringify(chats)); }
+    function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+    function saveChatMessages(chatId) {
+      const chats = loadAllChats();
+      const idx = chats.findIndex(c => c.id === chatId);
+      if (idx !== -1) {
+        chats[idx].messages = currentMessages.slice();
+        chats[idx].updatedAt = Date.now();
+        const [chat] = chats.splice(idx, 1);
+        chats.unshift(chat);
+        saveAllChats(chats);
+      }
+    }
+
+    // ── AUTH STATE ──
+    onAuthStateChanged(auth, user => {
+      if (user && user.emailVerified) {
+        currentUser = user;
+        showApp(user);
+      } else {
+        currentUser = null;
+        showAuthScreen();
+      }
+    });
+
+    function showAuthScreen() {
+      document.getElementById('auth-screen').classList.add('visible');
+      document.getElementById('app').classList.remove('visible');
+      if (_pendingAuthMsg) {
+        const el = document.getElementById('auth-error');
+        if (el) { el.style.color = _pendingAuthMsg.color; el.textContent = _pendingAuthMsg.text; }
+        _pendingAuthMsg = null;
+      }
+    }
+
+    // ── AVATAR GENERATOR ──
+    function generateAvatar(uid) {
+      // Generate deterministic colors from uid
+      let hash = 0;
+      for (let i = 0; i < uid.length; i++) hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+      const h1 = Math.abs(hash) % 360;
+      const h2 = (h1 + 140) % 360;
+      const bg = `hsl(${h1}, 65%, 45%)`;
+      const star = `hsl(${h2}, 80%, 80%)`;
+      return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+        <circle cx="50" cy="50" r="50" fill="${bg}"/>
+        <g stroke="${star}" stroke-width="10" stroke-linecap="round">
+          <line x1="50" y1="18" x2="50" y2="82"/>
+          <line x1="22" y1="34" x2="78" y2="66"/>
+          <line x1="22" y1="66" x2="78" y2="34"/>
+        </g>
+      </svg>`;
+    }
+
+    function applyUserUI(displayName, email, photoURL, uid) {
+      // If no real name, derive one from the email local part (e.g. john.doe@… → John)
+      let name = displayName;
+      if (!name || name === email) {
+        const local = email.split('@')[0].split(/[._\-+]/)[0];
+        name = local.charAt(0).toUpperCase() + local.slice(1);
+      }
+      currentDisplayName = name.split(' ')[0];
+      document.getElementById('user-name').textContent = name;
+      document.getElementById('user-email').textContent = email;
+      const avatarEl = document.getElementById('user-avatar');
+      avatarEl.innerHTML = photoURL ? `<img src="${photoURL}" alt="avatar"/>` : generateAvatar(uid);
+    }
+
+    async function showApp(user) {
+      document.getElementById('auth-screen').classList.remove('visible');
+      document.getElementById('app').classList.add('visible');
+
+      // Render immediately with auth data — no waiting
+      const authName = user.displayName || user.email;
+      applyUserUI(authName, user.email, user.photoURL, user.uid);
+      loadChats();
+
+      // Then update with Firestore full name if available (background, non-blocking)
+      getDoc(doc(db, 'users', user.uid)).then(userDoc => {
+        if (userDoc.exists() && userDoc.data().fullname) {
+          applyUserUI(userDoc.data().fullname, user.email, user.photoURL, user.uid);
+        }
+      }).catch(() => {});
+    }
+
+    // ── AUTH ──
+    window.switchTab = function(tab) {
+      if (_verifyInterval) window.stopCreation();
+      document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
+      document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+      document.getElementById('auth-submit-btn').textContent = tab === 'signin' ? 'Sign In' : 'Create Account';
+      document.getElementById('auth-fullname').style.display = tab === 'signup' ? 'block' : 'none';
+      document.getElementById('auth-forgot-link').style.display = tab === 'signin' ? 'block' : 'none';
+      document.getElementById('auth-error').textContent = '';
+      window._authTab = tab;
+    };
+
+    window.authForgotPassword = async function() {
+      const email = document.getElementById('auth-email').value.trim();
+      const errEl = document.getElementById('auth-error');
+      if (!email) {
+        errEl.style.color = '#ff6b6b';
+        errEl.textContent = 'Enter your email address first.';
+        document.getElementById('auth-email').focus();
+        return;
+      }
+      errEl.style.color = 'rgba(255,255,255,0.4)';
+      errEl.textContent = 'Sending…';
+      try {
+        await sendPasswordResetEmail(auth, email);
+        errEl.style.color = '#1188aa';
+        errEl.textContent = `Reset email sent to ${email}. Check your inbox (and spam folder).`;
+      } catch (e) {
+        errEl.style.color = '#ff6b6b';
+        errEl.textContent = e.code === 'auth/invalid-email' ? 'Invalid email address.' : 'Failed to send reset email. Try again.';
+      }
+    };
+    window._authTab = 'signin';
+
+    window.signInWithGoogle = async function() {
+      const errEl = document.getElementById('auth-error');
+      errEl.style.color = '#ff6b6b';
+      errEl.textContent = '';
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (e) {
+        if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+          // User closed the popup — silent, no error
+        } else if (e.code === 'auth/popup-blocked') {
+          errEl.textContent = 'Popup was blocked by your browser. Please allow popups for this site.';
+        } else {
+          errEl.textContent = e.message.replace('Firebase: ', '').replace(/ \(auth\/.*\)\.?/, '');
+        }
+      }
+    };
+
+    // Handle redirect result on page load (for signInWithRedirect flow)
+    getRedirectResult(auth).then(result => {
+      if (result && result.user) {
+        // onAuthStateChanged will fire and call showApp — nothing else needed
+      }
+    }).catch(e => {
+      if (e.code !== 'auth/no-auth-event') {
+        const errEl = document.getElementById('auth-error');
+        if (errEl) { errEl.style.color = '#ff6b6b'; errEl.textContent = e.message.replace('Firebase: ', '').replace(/ \(auth\/.*\)\.?/, ''); }
+      }
+    });
+
+    window.submitAuth = async function() {
+      const submitBtn = document.getElementById('auth-submit-btn');
+      if (submitBtn.disabled) return;
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const fullname = document.getElementById('auth-fullname').value.trim();
+      const errEl = document.getElementById('auth-error');
+      errEl.style.color = '#ff6b6b';
+      errEl.textContent = '';
+      if (!email || !password) { errEl.textContent = 'Please fill in all fields.'; return; }
+      if (window._authTab === 'signup') {
+        if (!fullname) { errEl.textContent = 'Please enter your full name.'; return; }
+        if (fullname.split(' ').filter(w => w).length < 2) { errEl.textContent = 'Please enter your first and last name.'; return; }
+      }
+      submitBtn.disabled = true;
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = window._authTab === 'signup' ? 'Creating account…' : 'Signing in…';
+      let showingSuccess = false;
+      try {
+        if (window._authTab === 'signup') {
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          await updateProfile(cred.user, { displayName: fullname }).catch(() => {});
+          await sendEmailVerification(cred.user);
+          // Store display name — timeout after 4s so a Firestore hang never blocks the flow
+          await Promise.race([
+            setDoc(doc(db, 'users', cred.user.uid), { fullname, email, createdAt: serverTimestamp() }),
+            new Promise(r => setTimeout(r, 4000))
+          ]).catch(() => {});
+          showingSuccess = true;
+          startVerificationCountdown(cred.user, submitBtn, originalText);
+        } else {
+          const cred = await signInWithEmailAndPassword(auth, email, password);
+          if (!cred.user.emailVerified) {
+            await fbSignOut(auth);
+            errEl.textContent = 'Please verify your email before signing in. Check your inbox (and spam folder).';
+          }
+        }
+      } catch (e) {
+        errEl.style.color = '#ff6b6b';
+        if (e.code === 'auth/email-already-in-use' && window._authTab === 'signup') {
+          // The email may belong to an unverified account from a prior signup attempt.
+          // Try signing in with the same credentials to find out.
+          try {
+            const existingCred = await signInWithEmailAndPassword(auth, email, password);
+            if (!existingCred.user.emailVerified) {
+              // Unverified ghost account — delete it and re-create fresh so it doesn't
+              // accumulate in Firebase Auth as a permanent unverified record.
+              await deleteUser(existingCred.user);
+              const newCred = await createUserWithEmailAndPassword(auth, email, password);
+              await updateProfile(newCred.user, { displayName: fullname }).catch(() => {});
+              await sendEmailVerification(newCred.user).catch(() => {});
+              await Promise.race([
+                setDoc(doc(db, 'users', newCred.user.uid), { fullname, email, createdAt: serverTimestamp() }),
+                new Promise(r => setTimeout(r, 4000))
+              ]).catch(() => {});
+              await fbSignOut(auth);
+              errEl.style.color = '#1188aa';
+              errEl.textContent = 'Verification email resent! Check your inbox (and spam folder) then sign in.';
+            } else {
+              // Verified account exists — just tell them to sign in
+              await fbSignOut(auth);
+              errEl.textContent = 'You already have an account. Switch to Sign In.';
+            }
+          } catch {
+            // Different password or other issue — email is genuinely taken
+            errEl.textContent = 'An account with this email already exists. Switch to Sign In.';
+          }
+        } else {
+          errEl.textContent = e.message.replace('Firebase: ', '').replace(/ \(auth\/.*\)\.?/, '');
+        }
+      } finally {
+        if (!showingSuccess) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      }
+    };
+
+    function startVerificationCountdown(user, submitBtn, originalText) {
+      _pendingVerifyUser = user;
+      _pendingOriginalBtnText = originalText;
+
+      const expiresAt = Date.now() + 180_000; // wall-clock deadline
+      let lastPollAt = Date.now();
+
+      const errEl = document.getElementById('auth-error');
+      const stopBtn = document.getElementById('stop-creation-btn');
+      submitBtn.style.display = 'none';
+      stopBtn.style.display = 'block';
+
+      function updateDisplay(secondsLeft) {
+        const mins = Math.floor(secondsLeft / 60);
+        const secs = secondsLeft % 60;
+        errEl.style.color = '#1188aa';
+        errEl.textContent = `You have ${mins}:${secs.toString().padStart(2, '0')} to verify your account. Check your email (and spam folder).`;
+      }
+      updateDisplay(180);
+
+      _verifyInterval = setInterval(async () => {
+        const now = Date.now();
+        const secondsLeft = Math.max(0, Math.round((expiresAt - now) / 1000));
+
+        // Poll Firebase at most every 3s (wall-clock) to avoid rate limits
+        if (now - lastPollAt >= 3000) {
+          lastPollAt = now;
+          try {
+            await user.reload();
+            if (user.emailVerified) {
+              clearInterval(_verifyInterval); _verifyInterval = null; _pendingVerifyUser = null;
+              await fbSignOut(auth).catch(() => {});
+              submitBtn.style.display = 'block'; stopBtn.style.display = 'none';
+              submitBtn.disabled = false; submitBtn.textContent = originalText;
+              errEl.style.color = '#1188aa';
+              errEl.textContent = 'Email verified! You can now sign in.';
+              return;
+            }
+          } catch { /* ignore transient errors */ }
+        }
+
+        if (secondsLeft <= 0) {
+          clearInterval(_verifyInterval); _verifyInterval = null;
+          try { await deleteUser(_pendingVerifyUser); } catch {}
+          _pendingVerifyUser = null;
+          await fbSignOut(auth).catch(() => {});
+          submitBtn.style.display = 'block'; stopBtn.style.display = 'none';
+          submitBtn.disabled = false; submitBtn.textContent = originalText;
+          errEl.style.color = '#ff6b6b';
+          errEl.textContent = 'Account expired (3 min). Please sign up again.';
+          return;
+        }
+        updateDisplay(secondsLeft);
+      }, 1000);
+    }
+
+    window.stopCreation = async function() {
+      if (_verifyInterval) { clearInterval(_verifyInterval); _verifyInterval = null; }
+      const submitBtn = document.getElementById('auth-submit-btn');
+      const stopBtn = document.getElementById('stop-creation-btn');
+      const errEl = document.getElementById('auth-error');
+      if (_pendingVerifyUser) {
+        try { await deleteUser(_pendingVerifyUser); } catch {}
+        _pendingVerifyUser = null;
+      }
+      await fbSignOut(auth).catch(() => {});
+      submitBtn.style.display = 'block'; stopBtn.style.display = 'none';
+      submitBtn.disabled = false; submitBtn.textContent = _pendingOriginalBtnText;
+      errEl.style.color = 'rgba(255,255,255,0.4)';
+      errEl.textContent = 'Account creation cancelled.';
+    };
+
+    window.signOut = async function() {
+      await fbSignOut(auth);
+      document.getElementById('chat-list').innerHTML = '';
+      currentChatId = null;
+      currentMessages = [];
+      setInputVisible(false);
+      renderMessages();
+    };
+
+    // ── ACCOUNT SETTINGS ──
+
+    window.openSettings = function() {
+      const modal = document.getElementById('settings-modal');
+      modal.classList.add('visible');
+      const name = document.getElementById('user-name').textContent;
+      const avatarEl = document.getElementById('user-avatar');
+
+      document.getElementById('settings-display-name').textContent = name;
+      // Always show real email from Firebase auth
+      document.getElementById('settings-display-email').textContent = currentUser ? currentUser.email : '—';
+
+      document.getElementById('settings-old-password').value = '';
+      document.getElementById('settings-password').value = '';
+      document.getElementById('settings-delete-password').value = '';
+      document.getElementById('settings-new-email').value = '';
+      document.getElementById('settings-email-password').value = '';
+      document.getElementById('settings-msg').textContent = '';
+      document.getElementById('settings-email-msg').textContent = '';
+      // Reset show/hide toggles
+      document.querySelectorAll('.btn-pw-toggle').forEach(btn => {
+        const input = document.getElementById(btn.dataset.target);
+        if (input) input.type = 'password';
+        btn.textContent = 'show';
+      });
+
+      // Copy avatar SVG or image
+      const settingsAvatar = document.getElementById('settings-avatar');
+      settingsAvatar.innerHTML = avatarEl.innerHTML;
+
+    };
+
+    window.closeSettings = function() {
+      document.getElementById('settings-modal').classList.remove('visible');
+    };
+
+    window.saveName = async function() {
+      const newName = document.getElementById('settings-new-name').value.trim();
+      const msgEl = document.getElementById('settings-name-msg');
+      if (!newName) { msgEl.style.color = '#ff6b6b'; msgEl.textContent = 'Please enter a name.'; return; }
+      try {
+        await updateProfile(currentUser, { displayName: newName });
+        document.getElementById('user-name').textContent = newName;
+        document.getElementById('settings-display-name').textContent = newName;
+        msgEl.style.color = 'var(--accent)';
+        msgEl.textContent = 'Name updated!';
+      } catch (e) {
+        msgEl.style.color = '#ff6b6b';
+        msgEl.textContent = 'Failed to update name.';
+      }
+    };
+
+    window.savePassword = async function() {
+      const { updatePassword } = await import("https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js");
+      const oldPassword = document.getElementById('settings-old-password').value;
+      const newPassword = document.getElementById('settings-password').value;
+      const msgEl = document.getElementById('settings-msg');
+      msgEl.style.color = '#ff6b6b';
+      if (!oldPassword) { msgEl.textContent = 'Enter your current password.'; return; }
+      if (!newPassword || newPassword.length < 6) { msgEl.textContent = 'New password must be at least 6 characters.'; return; }
+      try {
+        const credential = EmailAuthProvider.credential(currentUser.email, oldPassword);
+        await reauthenticateWithCredential(currentUser, credential);
+        await updatePassword(currentUser, newPassword);
+        msgEl.style.color = 'var(--accent)';
+        msgEl.textContent = 'Password updated!';
+        document.getElementById('settings-old-password').value = '';
+        document.getElementById('settings-password').value = '';
+      } catch (e) {
+        if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+          msgEl.textContent = 'Current password is incorrect.';
+        } else {
+          msgEl.textContent = e.message.replace('Firebase: ', '').replace(/ \(auth\/.*\)\.?/, '');
+        }
+      }
+    };
+
+    window.forgotPassword = async function() {
+      const msgEl = document.getElementById('settings-msg');
+      msgEl.style.color = 'rgba(255,255,255,0.4)';
+      msgEl.textContent = 'Sending…';
+      try {
+        await sendPasswordResetEmail(auth, currentUser.email);
+        msgEl.style.color = 'var(--accent)';
+        msgEl.textContent = `Reset email sent to ${currentUser.email}. Check your inbox (and spam folder).`;
+      } catch (e) {
+        msgEl.style.color = '#ff6b6b';
+        msgEl.textContent = 'Failed to send reset email. Try again.';
+      }
+    };
+
+    window.saveEmail = async function() {
+      const { updateEmail } = await import("https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js");
+      const newEmail = document.getElementById('settings-new-email').value.trim();
+      const password = document.getElementById('settings-email-password').value;
+      const msgEl = document.getElementById('settings-email-msg');
+      msgEl.style.color = '#ff6b6b';
+      if (!newEmail) { msgEl.textContent = 'Enter a new email address.'; return; }
+      if (!password) { msgEl.textContent = 'Enter your current password.'; return; }
+      const btn = document.getElementById('btn-save-email');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        const credential = EmailAuthProvider.credential(currentUser.email, password);
+        await reauthenticateWithCredential(currentUser, credential);
+        await updateEmail(currentUser, newEmail);
+        document.getElementById('settings-new-email').value = '';
+        document.getElementById('settings-email-password').value = '';
+        msgEl.style.color = 'var(--accent)';
+        msgEl.textContent = `Email updated to ${newEmail}.`;
+        // Update displayed email in sidebar
+        document.getElementById('user-email').textContent = newEmail;
+        document.getElementById('settings-display-email').textContent = newEmail;
+      } catch (e) {
+        if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+          msgEl.textContent = 'Current password is incorrect.';
+        } else if (e.code === 'auth/email-already-in-use') {
+          msgEl.textContent = 'That email is already in use.';
+        } else if (e.code === 'auth/invalid-email') {
+          msgEl.textContent = 'Invalid email address.';
+        } else {
+          msgEl.textContent = e.message.replace('Firebase: ', '').replace(/ \(auth\/.*\)\.?/, '');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save';
+      }
+    };
+
+    window.deleteAllChats = function() {
+      if (!confirm('Delete all your chats? This cannot be undone.')) return;
+      const msgEl = document.getElementById('settings-msg');
+      saveAllChats([]);
+      currentChatId = null; currentMessages = [];
+      setInputVisible(false); renderMessages();
+      loadChats();
+      msgEl.style.color = 'var(--accent)';
+      msgEl.textContent = 'All chats deleted.';
+    };
+
+    window.deleteAccount = async function() {
+      const password = document.getElementById('settings-delete-password').value;
+      const msgEl = document.getElementById('settings-msg');
+      if (!password) {
+        msgEl.style.color = '#ff6b6b';
+        msgEl.textContent = 'Enter your password to delete your account.';
+        return;
+      }
+      if (!confirm('Permanently delete your account and all data? This cannot be undone.')) return;
+      const btn = document.getElementById('btn-delete-account');
+      btn.disabled = true;
+      const origText = btn.textContent;
+      btn.textContent = 'Deleting…';
+      try {
+        const credential = EmailAuthProvider.credential(currentUser.email, password);
+        await reauthenticateWithCredential(currentUser, credential);
+        // Wipe local chats first
+        if (currentUser) localStorage.removeItem(`thatgpt_chats_${currentUser.uid}`);
+        await deleteUser(currentUser);
+        // onAuthStateChanged will fire → showAuthScreen
+      } catch (e) {
+        msgEl.style.color = '#ff6b6b';
+        if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+          msgEl.textContent = 'Incorrect password.';
+        } else {
+          msgEl.textContent = e.message.replace('Firebase: ', '').replace(/ \(auth\/.*\)\.?/, '');
+        }
+        btn.disabled = false;
+        btn.textContent = origText;
+        document.getElementById('settings-delete-password').value = '';
+      }
+    };
+
+    // ── INPUT VISIBILITY ──
+    function setInputVisible(visible) {
+      document.getElementById('input-area').style.display = visible ? 'flex' : 'none';
+    }
+
+    // ── SIDEBAR ACTIVE STATE ──
+    function updateSidebarActive() {
+      document.querySelectorAll('.chat-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.chatId === currentChatId);
+      });
+    }
+
+    // ── CHATS ──
+    function loadChats() {
+      const chats = loadAllChats();
+      const list = document.getElementById('chat-list');
+      list.innerHTML = '';
+      if (chats.length === 0) {
+        currentChatId = null;
+        setInputVisible(false);
+        renderMessages();
+        return;
+      }
+      chats.forEach(chat => {
+        const item = document.createElement('div');
+        item.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
+        item.dataset.chatId = chat.id;
+        item.innerHTML = `<span class="chat-item-title">${chat.title || 'New Chat'}</span>
+          <button class="chat-delete" data-id="${chat.id}">✕</button>`;
+        item.querySelector('.chat-delete').addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteChat(chat.id);
+        });
+        item.addEventListener('click', () => openChat(chat.id));
+        list.appendChild(item);
+      });
+      if (!currentChatId && chats.length > 0) {
+        openChat(chats[0].id);
+      }
+    }
+
+    window.newChat = function() {
+      if (!currentUser) return;
+      const chatId = genId();
+      const chats = loadAllChats();
+      chats.unshift({ id: chatId, title: 'New Chat', updatedAt: Date.now(), messages: [] });
+      saveAllChats(chats);
+      currentChatId = chatId;
+      currentMessages = [];
+      loadChats();
+      setInputVisible(true);
+      renderMessages();
+      updateSidebarActive();
+      document.getElementById('userInput').focus();
+    };
+
+    window.openChat = function(chatId) {
+      if (_currentAbortController) _currentAbortController.abort();
+      currentChatId = chatId;
+      updateSidebarActive();
+      const chats = loadAllChats();
+      const chat = chats.find(c => c.id === chatId);
+      currentMessages = chat ? chat.messages.slice() : [];
+      setInputVisible(true);
+      renderMessages();
+      document.getElementById('userInput').focus();
+    };
+
+    window.deleteChat = function(chatId) {
+      const chats = loadAllChats().filter(c => c.id !== chatId);
+      saveAllChats(chats);
+      if (currentChatId === chatId) {
+        currentChatId = null;
+        currentMessages = [];
+        setInputVisible(false);
+        renderMessages();
+      }
+      loadChats();
+      updateSidebarActive();
+    };
+
+    // ── AUTO-NAME CHAT ──
+    function autoNameChat(chatId, firstMessage) {
+      const title = firstMessage.length > 40 ? firstMessage.slice(0, 40) + '…' : firstMessage;
+      const chats = loadAllChats();
+      const chat = chats.find(c => c.id === chatId);
+      if (chat) { chat.title = title; saveAllChats(chats); loadChats(); }
+    }
+
+   // ── INLINE MARKDOWN (bold / italic) ──
+    function renderInline(text) {
+      const frag = document.createDocumentFragment();
+      const re = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+      let last = 0, match;
+      while ((match = re.exec(text)) !== null) {
+        if (match.index > last)
+          frag.appendChild(document.createTextNode(text.slice(last, match.index)));
+        if (match[1] !== undefined) {
+          const el = document.createElement('strong');
+          el.textContent = match[1];
+          frag.appendChild(el);
+        } else {
+          const el = document.createElement('em');
+          el.textContent = match[2];
+          frag.appendChild(el);
+        }
+        last = match.index + match[0].length;
+      }
+      if (last < text.length)
+        frag.appendChild(document.createTextNode(text.slice(last)));
+      return frag;
+    }
+
+    // ── CONTENT RENDERER (code blocks + syntax highlighting) ──
+   function renderContent(text) {
+      const container = document.createElement('div');
+      
+      const blocks = text.split('```');
+      
+      blocks.forEach((block, index) => {
+        if (index % 2 === 0) {
+          // Standard Text
+          const textSpan = document.createElement('span');
+          let formattedText = block
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+            
+          textSpan.innerHTML = formattedText;
+          container.appendChild(textSpan);
+        } else {
+          // Code Block
+          const pre = document.createElement('pre');
+          const codeEl = document.createElement('code');
+          
+          const firstNewlineIndex = block.indexOf('\n');
+          let codeContent = block;
+          
+          if (firstNewlineIndex !== -1) {
+            const firstLine = block.substring(0, firstNewlineIndex).trim();
+            if (firstLine && !firstLine.includes(' ')) {
+              codeEl.className = `language-${firstLine}`;
+              codeContent = block.substring(firstNewlineIndex + 1);
+            }
+          }
+          
+          const safeCode = codeContent
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+            
+          codeEl.innerHTML = safeCode;
+          
+          // Add some basic padding and border radius to the wrapper
+          pre.style.padding = '12px';
+          pre.style.borderRadius = '6px';
+          pre.style.overflowX = 'auto';
+          pre.style.marginTop = '10px';
+          pre.style.marginBottom = '10px';
+          // Background color is handled automatically by the Highlight.js theme!
+          
+          pre.appendChild(codeEl);
+          container.appendChild(pre);
+
+          // 🛑 THE MAGIC TRICK: Trigger the color coding!
+          if (window.hljs) {
+            // This applies the multi-colored syntax highlighting instantly
+            hljs.highlightElement(codeEl); 
+          }
+        }
+      });
+      
+      return container;
+    }
+
+    // ── RENDER MESSAGES ──
+    function renderMessages() {
+      const chatbox = document.getElementById('chatbox');
+      chatbox.innerHTML = '';
+      if (!currentChatId) {
+        const greeting = currentDisplayName ? `Hello, ${currentDisplayName}.` : 'Hello.';
+        chatbox.innerHTML = `<div class="empty-chat">
+          <div class="big">${greeting}</div>
+          <div>Press <strong style="color:var(--accent)">+ New</strong> to start a chat.</div>
+        </div>`;
+        return;
+      }
+      if (currentMessages.length === 0) {
+        const prompt = currentDisplayName ? `What's on your mind, ${currentDisplayName}?` : 'Ask me anything.';
+        chatbox.innerHTML = `<div class="empty-chat"><div class="big">ThatGPT</div><div>${prompt}</div></div>`;
+        return;
+      }
+      currentMessages.forEach(msg => appendBubble(msg.role, msg.content));
+    }
+
+    function appendBubble(role, text, isError = false) {
+      const chatbox = document.getElementById('chatbox');
+      const emptyChat = chatbox.querySelector('.empty-chat');
+      if (emptyChat) emptyChat.remove();
+
+      const isBot = role === 'bot' || role === 'assistant';
+      const wrapper = document.createElement('div');
+      wrapper.className = `message ${isBot ? 'bot' : 'user'}${isError ? ' error' : ''}`;
+
+      const label = document.createElement('div');
+      label.className = 'message-label';
+      label.textContent = isBot ? 'ThatGPT' : 'You';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.appendChild(renderContent(text));
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(bubble);
+      chatbox.appendChild(wrapper);
+      chatbox.scrollTop = chatbox.scrollHeight;
+      return wrapper;
+    }
+
+    const THINKING_VERBS = [
+      'tinkering', 'shnahbwangling', 'cogitating', 'wumboozling', 'deliberating',
+      'noodling', 'flibbertigibbeting', 'percolating', 'snorflaxing', 'ruminating',
+      'blorpulating', 'contemplating', 'frobnicating', 'scheming', 'wrangling',
+      'discombobulating', 'mulling', 'zippidydoodling', 'simmering', 'galumphing',
+      'calculating', 'snazzifying', 'brainstorming', 'kerfuffling', 'synthesizing',
+      'wibblywobbling', 'processing', 'glorbifying', 'pondering', 'shnorkling', 'alastairing', 'hielluoing', 'nicholasing', 'geniusing', 'hielluosymping'
+    ];
+    let _typingInterval = null;
+
+    function appendStreamingBubble() {
+      const chatbox = document.getElementById('chatbox');
+      const emptyChat = chatbox.querySelector('.empty-chat');
+      if (emptyChat) emptyChat.remove();
+      const wrapper = document.createElement('div');
+      wrapper.className = 'message bot';
+      const label = document.createElement('div');
+      label.className = 'message-label'; label.textContent = 'ThatGPT';
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      const textSpan = document.createElement('span');
+      textSpan.className = 'streaming-text';
+      bubble.appendChild(textSpan);
+      wrapper.appendChild(label); wrapper.appendChild(bubble);
+      chatbox.appendChild(wrapper);
+      chatbox.scrollTop = chatbox.scrollHeight;
+      return wrapper;
+    }
+
+    function showTyping() {
+      const chatbox = document.getElementById('chatbox');
+      const w = document.createElement('div');
+      w.className = 'message bot typing'; w.id = 'typing-indicator';
+      const label = document.createElement('div'); label.className = 'message-label'; label.textContent = 'ThatGPT';
+      const bubble = document.createElement('div'); bubble.className = 'message-bubble';
+      const verbEl = document.createElement('span'); verbEl.className = 'typing-verb';
+
+      function setVerb() {
+        const v = THINKING_VERBS[Math.floor(Math.random() * THINKING_VERBS.length)];
+        verbEl.style.animation = 'none';
+        verbEl.offsetHeight; // reflow to restart animation
+        verbEl.style.animation = '';
+        verbEl.textContent = v + '...';
+      }
+      setVerb();
+      _typingInterval = setInterval(setVerb, 1800);
+
+      bubble.appendChild(verbEl);
+      w.appendChild(label); w.appendChild(bubble);
+      chatbox.appendChild(w);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function removeTyping() {
+      clearInterval(_typingInterval);
+      _typingInterval = null;
+      const t = document.getElementById('typing-indicator');
+      if (t) t.remove();
+    }
+
+    // ── SEND MESSAGE ──
+   // ── SEND MESSAGE ──
+// ── SEND MESSAGE ──
+    window.sendMessage = async function() {
+      if (isResponding) return;
+      const input = document.getElementById('userInput');
+      const sendBtn = document.getElementById('sendBtn');
+      const text = input.value.trim();
+      if (!text || !currentChatId || !currentUser) return;
+
+      input.value = '';
+
+      let messageText = text;
+
+      isResponding = true;
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Stop';
+      sendBtn.classList.add('stop');
+      input.disabled = true;
+
+      const thisChatId = currentChatId;
+      const isFirstMessage = currentMessages.length === 0;
+
+      // 1. Save and show user message
+      currentMessages.push({ role: 'user', content: messageText });
+      saveChatMessages(thisChatId);
+      // Show user-friendly text in bubble (just the typed text, not the full file dump)
+      appendBubble('user', text || messageText);
+
+      // 2. Build the hybrid bot bubble
+      const chatbox = document.getElementById('chatbox');
+      const emptyChat = chatbox.querySelector('.empty-chat');
+      if (emptyChat) emptyChat.remove();
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'message bot';
+      const label = document.createElement('div');
+      label.className = 'message-label'; 
+      label.textContent = 'ThatGPT';
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+
+      // The Toggle Button
+      const toggleBtn = document.createElement('button');
+      toggleBtn.textContent = 'Show Live Text';
+      toggleBtn.style.cssText = 'display:none; margin-bottom:10px; padding:4px 8px; font-size:12px; cursor:pointer; background:var(--accent, #1188aa); color:#fff; border:none; border-radius:4px;';
+      
+      // The Animation Container
+      const animContainer = document.createElement('div');
+      animContainer.className = 'typing-verb';
+      function setVerb() {
+        const v = THINKING_VERBS[Math.floor(Math.random() * THINKING_VERBS.length)];
+        animContainer.style.animation = 'none';
+        animContainer.offsetHeight; // reflow
+        animContainer.style.animation = '';
+        animContainer.textContent = v + '...';
+      }
+      setVerb();
+      
+      // Animation speed reverted to 1800ms
+      const typingInterval = setInterval(setVerb, 1800);
+
+      // The Text Container
+      const textContainer = document.createElement('div');
+      textContainer.style.display = 'none';
+
+      // Toggle Logic
+      let isShowingText = false;
+      toggleBtn.onclick = () => {
+        isShowingText = !isShowingText;
+        toggleBtn.textContent = isShowingText ? 'Hide Live Text' : 'Show Live Text';
+        animContainer.style.display = isShowingText ? 'none' : 'block';
+        textContainer.style.display = isShowingText ? 'block' : 'none';
+        chatbox.scrollTop = chatbox.scrollHeight;
+      };
+
+      bubble.appendChild(toggleBtn);
+      bubble.appendChild(animContainer);
+      bubble.appendChild(textContainer);
+      wrapper.appendChild(label);
+      wrapper.appendChild(bubble);
+      chatbox.appendChild(wrapper);
+      chatbox.scrollTop = chatbox.scrollHeight;
+
+      _currentAbortController = new AbortController();
+
+      let fullText = '';
+      let displayedText = '';
+
+      // UI Updater: Runs every 0.3 seconds — always keeps textContainer up-to-date
+      // Visibility is controlled by the Show/Hide toggle, not the update itself
+      const renderInterval = setInterval(() => {
+        if (displayedText !== fullText) {
+          displayedText = fullText;
+          textContainer.innerHTML = '';
+          textContainer.appendChild(renderContent(displayedText));
+          if (isShowingText) chatbox.scrollTop = chatbox.scrollHeight;
+        }
+      }, 300);
+
+      try {
+        const resp = await fetch('/get_response', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: messageText, history: currentMessages.slice(-10) }),
+          signal: _currentAbortController.signal
+        });
+
+        if (!resp.ok) {
+          let msg = `Server error ${resp.status}`;
+          try { const e = await resp.json(); if (e.error) msg = e.error; } catch {}
+          throw new Error(msg);
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let sseBuffer = '';
+        let firstWordReceived = false;
+
+        try {
+          outer: while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            sseBuffer += decoder.decode(value, { stream: true });
+            const lines = sseBuffer.split('\n');
+            sseBuffer = lines.pop();
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              let payload; try { payload = JSON.parse(line.slice(6)); } catch { continue; }
+              if (payload.error) throw new Error(payload.error);
+              if (payload.done) break outer;
+              if (payload.chunk) {
+                if (!firstWordReceived) {
+                  firstWordReceived = true;
+                  toggleBtn.style.display = 'inline-block';
+                }
+                // Add to background string, let the interval handle the UI
+                fullText += payload.chunk; 
+              }
+            }
+          }
+        } catch (streamErr) {
+          if (wrapper.parentNode) wrapper.remove();
+          throw streamErr;
+        }
+
+        // Cleanup and final render guarantee
+        clearInterval(typingInterval);
+        clearInterval(renderInterval);
+        toggleBtn.remove();
+        animContainer.remove();
+        textContainer.style.display = 'block';
+        textContainer.innerHTML = '';
+        textContainer.appendChild(renderContent(fullText)); // Final perfect render
+
+        currentMessages.push({ role: 'assistant', content: fullText });
+        saveChatMessages(thisChatId);
+        if (isFirstMessage) autoNameChat(thisChatId, text);
+        else loadChats();
+
+      } catch (err) {
+        clearInterval(typingInterval);
+        clearInterval(renderInterval);
+        if (err.name !== 'AbortError' && currentChatId === thisChatId) {
+          console.error('ThatGPT error:', err);
+          toggleBtn.remove();
+          animContainer.remove();
+          textContainer.style.display = 'block';
+          textContainer.innerHTML = `<span style="color:var(--error, #ff6b6b)">${err.message || 'Something went wrong. Please try again.'}</span>`;
+        }
+      } finally {
+        _currentAbortController = null;
+        isResponding = false;
+        sendBtn.textContent = 'Send';
+        sendBtn.classList.remove('stop');
+        input.disabled = false;
+        input.focus();
+        chatbox.scrollTop = chatbox.scrollHeight;
+      }
+    };
+
+    document.getElementById('userInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !isResponding) window.sendMessage();
+    });
+
+    // Attach all button listeners to avoid module scope issues
+    document.getElementById('sendBtn').addEventListener('click', () => {
+      if (isResponding && _currentAbortController) {
+        _currentAbortController.abort();
+      } else {
+        window.sendMessage();
+      }
+    });
+    document.getElementById('btn-new-chat').addEventListener('click', () => window.newChat());
+    document.getElementById('auth-submit-btn').addEventListener('click', () => window.submitAuth());
+    document.getElementById('stop-creation-btn').addEventListener('click', () => window.stopCreation());
+    document.getElementById('auth-forgot-link').addEventListener('click', e => { e.preventDefault(); window.authForgotPassword(); });
+    document.querySelector('.btn-google').addEventListener('click', () => window.signInWithGoogle());
+    document.querySelector('#tab-signin').addEventListener('click', () => window.switchTab('signin'));
+    document.querySelector('#tab-signup').addEventListener('click', () => window.switchTab('signup'));
+
+    // Settings buttons
+    document.getElementById('btn-close-settings').addEventListener('click', () => window.closeSettings());
+    document.getElementById('btn-save-name').addEventListener('click', () => window.saveName());
+    document.getElementById('btn-save-password').addEventListener('click', () => window.savePassword());
+    document.getElementById('btn-forgot-password').addEventListener('click', e => { e.preventDefault(); window.forgotPassword(); });
+    document.querySelectorAll('.btn-pw-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.target);
+        if (!input) return;
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        btn.textContent = showing ? 'show' : 'hide';
+      });
+    });
+    document.getElementById('btn-save-email').addEventListener('click', () => window.saveEmail());
+document.getElementById('btn-delete-chats').addEventListener('click', () => window.deleteAllChats());
+    document.getElementById('btn-delete-account').addEventListener('click', () => window.deleteAccount());
+
+    document.getElementById('settings-modal').addEventListener('click', function(e) {
+      if (e.target === this) window.closeSettings();
+    });
+    document.getElementById('user-avatar').addEventListener('click', () => window.openSettings());
+    document.getElementById('user-info-block').addEventListener('click', () => window.openSettings());
+    document.getElementById('btn-open-settings').addEventListener('click', () => window.openSettings());
+    document.getElementById('btn-signout').addEventListener('click', () => window.signOut());
+
+    // Hide input on load until a chat is opened
+    setInputVisible(false);
+
+    // ── SCROLL TO BOTTOM BUTTON ──
+    const _chatbox = document.getElementById('chatbox');
+    const _scrollBtn = document.getElementById('scroll-bottom-btn');
+    _chatbox.addEventListener('scroll', () => {
+      const atBottom = _chatbox.scrollTop + _chatbox.clientHeight >= _chatbox.scrollHeight - 80;
+      _scrollBtn.classList.toggle('visible', !atBottom);
+    });
+    _scrollBtn.addEventListener('click', () => { _chatbox.scrollTop = _chatbox.scrollHeight; });
+
+    // ── MOBILE SIDEBAR TOGGLE ──
+    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebar-overlay').classList.toggle('visible');
+    });
+    document.getElementById('sidebar-overlay').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('visible');
+    });
+
+    // ── SSO redirect to Hielluo ──
+    window.openHielluo = async function(e) {
+      e.preventDefault();
+      const user = auth.currentUser;
+      if (!user) { window.location.href = 'https://hielluo.onrender.com'; return; }
+      try {
+        const idToken = await user.getIdToken();
+        const res = await fetch('/auth/custom-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken })
+        });
+        const { customToken } = await res.json();
+        window.location.href = `https://hielluo.onrender.com?sso=${encodeURIComponent(customToken)}`;
+      } catch {
+        window.location.href = 'https://hielluo.onrender.com';
+      }
+    };
+  </script>
+</body>
+</html>
