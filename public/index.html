@@ -671,7 +671,7 @@ let _pendingVerifyUser = null;
     }
 
     // ── AUTH STATE ──
-    onAuthStateChanged(auth, user => {
+    auth.authStateReady().then(() => onAuthStateChanged(auth, user => {
       if (user && user.emailVerified) {
         currentUser = user;
         showApp(user);
@@ -679,7 +679,7 @@ let _pendingVerifyUser = null;
         currentUser = null;
         showAuthScreen();
       }
-    });
+    }));
 
     function showAuthScreen() {
       document.getElementById('auth-screen').classList.add('visible');
