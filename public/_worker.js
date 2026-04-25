@@ -102,7 +102,7 @@ function makeSSEStream(handler) {
   const writer = writable.getWriter();
   const enc = new TextEncoder();
   const send = (obj) => writer.write(enc.encode(`data: ${JSON.stringify(obj)}\n\n`));
-  handler(send).finally(() => writer.close());
+  handler(send).catch(e => send({ error: e.message })).finally(() => writer.close());
   return readable;
 }
 
