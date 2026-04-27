@@ -1518,7 +1518,7 @@ let _pendingVerifyUser = null;
         const resp = await fetch('/get_response', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: messageText, history: currentMessages.slice(-10) }),
+          body: JSON.stringify({ message: messageText, history: currentMessages.slice(-10).filter(m => m.content?.trim()) }),
           signal: _currentAbortController.signal
         });
 
