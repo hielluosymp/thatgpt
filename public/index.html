@@ -1667,7 +1667,7 @@ document.getElementById('btn-delete-chats').addEventListener('click', () => wind
     window.openHielluo = async function(e) {
       e.preventDefault();
       const user = auth.currentUser;
-      if (!user) { window.location.href = 'https://hielluo.onrender.com'; return; }
+      if (!user) { window.location.href = 'https://hielluo.org'; return; }
       try {
         const idToken = await user.getIdToken();
         const res = await fetch('/auth/custom-token', {
@@ -1676,9 +1676,9 @@ document.getElementById('btn-delete-chats').addEventListener('click', () => wind
           body: JSON.stringify({ idToken })
         });
         const { customToken } = await res.json();
-        window.location.href = `https://hielluo.onrender.com?sso=${encodeURIComponent(customToken)}`;
+        window.location.href = `https://hielluo.org?sso=${encodeURIComponent(customToken)}`;
       } catch {
-        window.location.href = 'https://hielluo.onrender.com';
+        window.location.href = 'https://hielluo.org';
       }
     };
   </script>
