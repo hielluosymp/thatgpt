@@ -1523,6 +1523,7 @@ let _pendingVerifyUser = null;
           body: JSON.stringify({ message: messageText, history: currentMessages.slice(-10).filter(m => m.content?.trim()) }),
           signal: _currentAbortController.signal
         });
+        console.log('fetch response:', resp.status, resp.ok);
 
         if (!resp.ok) {
           let msg = `Server error ${resp.status}`;
@@ -1579,6 +1580,7 @@ let _pendingVerifyUser = null;
       } catch (err) {
         clearInterval(typingInterval);
         clearInterval(renderInterval);
+        console.log('catch err:', err.name, err.message);
         if (err.name !== 'AbortError' && currentChatId === thisChatId) {
           console.error('ThatGPT error:', err);
           toggleBtn.remove();
