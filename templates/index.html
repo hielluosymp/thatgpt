@@ -1422,6 +1422,7 @@ let _pendingVerifyUser = null;
       const input = document.getElementById('userInput');
       const sendBtn = document.getElementById('sendBtn');
       const text = input.value.trim();
+      console.log('send check:', {text: !!text, currentChatId, currentUser: !!currentUser});
       if (!text || !currentChatId || !currentUser) return;
 
       input.value = '';
