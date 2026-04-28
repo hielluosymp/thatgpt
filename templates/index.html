@@ -1515,6 +1515,7 @@ let _pendingVerifyUser = null;
         }
       }, 300);
 
+      console.log('fetching /get_response', _currentAbortController.signal.aborted);
       try {
         const resp = await fetch('/get_response', {
           method: 'POST',
