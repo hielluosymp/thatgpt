@@ -143,7 +143,7 @@ async function handleGetResponse(request, env) {
     });
     if (!res.ok) { await send({ error: await res.text() }); return; }
     await streamFromSSE(res, async (event) => {
-      if (event.type === 'content-delta' && event.delta?.text) await send({ chunk: event.delta.text });
+      if (event.type === 'content-delta' && event.delta?.message?.content?.text) await send({ chunk: event.delta.message.content.text });
     });
     await send({ done: true });
   });
