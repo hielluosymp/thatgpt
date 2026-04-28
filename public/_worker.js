@@ -130,7 +130,7 @@ async function handleGetResponse(request, env) {
   if (!data?.message?.trim()) return jsonResponse({ error: 'Message required' }, 400);
   const userMessage = data.message.trim();
   const history = data.history || [];
-  const messages = [{ role: 'system', content: 'You are a helpful assistant. Be clear and direct. Do not cite sources or add references.' }];
+  const messages = [{ role: 'system', content: `You are a helpful assistant. Be clear and direct. Do not cite sources or add references. Today's date is ${new Date().toISOString().slice(0, 10)}.` }];
   for (const msg of (history.slice(0, -1))) {
     messages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content });
   }
